@@ -1,0 +1,51 @@
+POLYFITTY STUDIO — THIRD-PARTY NOTICES
+
+Application source
+------------------
+See LICENSE for the license terms distributed with this project.
+
+Runtime components
+------------------
+The source ZIP's installer downloads the following components into its private runtime; those binaries are not bundled in this source ZIP. The optional one-file Windows EXE build embeds the core runtime components listed below (and any selected optional GPU components).
+
+- PolyFit 1.6.0 — GPL-3.0. https://github.com/LiangliangNan/PolyFit
+- CPython 3.12.10 — Python Software Foundation License. https://www.python.org/
+- PySide6 / Qt for Python — LGPLv3, GPLv3, or commercial licensing. https://www.qt.io/licensing/
+- VTK — BSD 3-Clause License. https://vtk.org/license/
+- NumPy — BSD-style license. https://numpy.org/
+- SciPy — BSD 3-Clause License. https://scipy.org/
+- trimesh — MIT License. https://github.com/mikedh/trimesh
+- xatlas-python — MIT License. https://github.com/mworchel/xatlas-python
+- NetworkX — BSD License. https://networkx.org/
+- psutil — BSD-3-Clause License. https://github.com/giampaolo/psutil
+- Pillow — HPND License. https://python-pillow.org/
+- lxml — BSD License. https://lxml.de/
+- CuPy — MIT License. https://cupy.dev/
+- NVIDIA CUDA component wheels — NVIDIA package terms. https://pypi.org/project/nvidia-cuda-runtime-cu12/
+- PyOpenCL / OpenCL components — refer to upstream project and platform-vendor terms. https://documen.tician.de/pyopencl/
+
+Check each upstream project for the complete license text and current terms before redistributing its binaries. The default portable Universal GPU build can embed both CUDA and OpenCL components in one executable. The installed application runtime may install only the backend selected for the detected hardware; vendor drivers and their licensing terms remain separate.
+
+
+Intel oneAPI Python Runtime (dpctl / dpnp)
+- dpctl: Apache License 2.0
+- dpnp: BSD 3-Clause License
+- Used for optional Intel GPU compute via SYCL. Intel GPU drivers are supplied separately by Intel.
+- Project pages: https://github.com/IntelPython/dpctl and https://github.com/IntelPython/dpnp
+
+
+Intel oneAPI / SYCL runtime dependency closure
+----------------------------------------------
+- dpctl 0.22.1 — Apache License 2.0. https://pypi.org/project/dpctl/
+- dpnp 0.20.0 — BSD 3-Clause License. https://pypi.org/project/dpnp/
+- dpcpp-cpp-rt, intel-sycl-rt, intel-cmplr-lib-rt, intel-cmplr-lib-ur, intel-cmplr-lic-rt, intel-openmp, intel-opencl-rt and oneMKL SYCL component packages — Intel compiler/runtime and oneMKL components distributed under the applicable Intel End User License Agreement / Intel Simplified Software License. See the license/EULA files supplied by the respective wheels and the Intel oneAPI licensing terms before redistribution.
+- The portable build collector follows required dependency metadata and includes relevant DLLs, runtime manifests, and any license/EULA files exposed by the installed distributions. This does not grant rights beyond the upstream terms.
+
+
+AMD ROCm / HIP SDK components (optional Windows portable build)
+---------------------------------------------------------------
+- The optional Windows HIP bridge is compiled from this project's source using the AMD HIP SDK headers and a Visual Studio C++ toolchain.
+- HIPRTC and AMD COMGR DLLs, their required SDK DLL dependencies, device bitcode/runtime data and available SDK license/EULA notices are collected from the installed AMD HIP SDK when the HIP build option is enabled.
+- The AMD driver-provided HIP runtime (`amdhip64*.dll`) is intentionally not redistributed in the application bundle. The target PC must have a compatible AMD graphics driver and a Radeon GPU supported by the relevant Windows HIP SDK release.
+- AMD HIP SDK documentation and license terms: https://rocm.docs.amd.com/projects/install-on-windows/en/latest/
+- Review the license/EULA/redistribution terms supplied with the exact SDK version used to build the bridge before distributing the resulting executable. The project does not grant additional rights to AMD SDK components.

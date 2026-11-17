@@ -1,0 +1,5 @@
+numpy==1.26.4
+cupy-cuda12x==13.6.0
+nvidia-cuda-runtime-cu12==12.6.77
+nvidia-cuda-nvrtc-cu12==12.6.77
+nvidia-cublas-cu12==12.6.4.1

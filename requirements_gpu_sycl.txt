@@ -1,0 +1,6 @@
+# Intel oneAPI/SYCL runtime for 64-bit CPython 3.12 on Windows.
+# dpnp 0.20.0's compiled Cython extension requires the dpctl 0.22.x API.
+# dpctl 0.23.0 removed the dpctl.program.SyclProgram Cython API.
+--index-url https://software.repos.intel.com/python/pypi
+dpctl==0.22.1
+dpnp==0.20.0
