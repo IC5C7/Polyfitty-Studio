@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="x-ua-compatible" content="IE=11" />
+  <meta charset="utf-8" />
+  <title>Polyfitty Studio - Portable EXE Builder</title>
+  <hta:application
+    id="polyfittyBuilder"
+    applicationname="Polyfitty Studio Portable Builder"
+    border="thin"
+    caption="yes"
+    contextmenu="no"
+    icon="..\app\assets\PolyfittyStudio.ico"
+    maximizebutton="yes"
+    minimizebutton="yes"
+    navigable="no"
+    scroll="no"
+    selection="no"
+    showintaskbar="yes"
+    singleinstance="yes"
+    sysmenu="yes"
+    windowstate="normal"
+  />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0; background: #080d19; color: #eaf2ff;
+      font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+    }
+    .window { padding: 24px 28px 20px; }
+    .brand-row { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+    .brand-icon { width: 54px; height: 54px; object-fit: contain; border-radius: 12px; }
+    .brand-copy { min-width: 0; }
+    .eyebrow { color: #91a8c6; font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+    h1 { margin: 4px 0 2px; font-size: 25px; font-weight: 650; }
+    .subtitle { color: #9badc0; margin-bottom: 0; font-size: 13px; }
+    .panel { background: #111d31; border: 1px solid #29415f; border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    .stage { color: #dceaff; font-weight: 600; font-size: 14px; }
+    .percent { color: #73c9ff; font-weight: 700; font-size: 18px; }
+    .message { color: #a8bad3; margin-top: 8px; min-height: 18px; line-height: 1.4; }
+    .track { height: 13px; background: #080d19; border-radius: 8px; overflow: hidden; margin-top: 16px; border: 1px solid #29415f; }
+    .fill { height: 100%; width: 0%; background: #32b8ff; transition: width .35s ease; position: relative; }
+    .fill.busy:after { content: ""; position: absolute; top: 0; left: -40%; height: 100%; width: 35%; background: rgba(255,255,255,.34); animation: sweep 1.5s infinite; }
+    @keyframes sweep { from { left: -40%; } to { left: 110%; } }
+    .section-title { color: #eaf2ff; font-size: 13px; font-weight: 650; margin: 0 0 12px; }
+    .option { display: block; margin: 8px 0; color: #c4d4e9; }
+    input[type=checkbox] { vertical-align: middle; margin-right: 8px; }
+    .path-label { display: block; color: #91a8c6; font-size: 12px; margin: 13px 0 6px; }
+    input[type=text] { width: 100%; padding: 9px 10px; background: #0a1322; border: 1px solid #29415f; color: #eaf2ff; border-radius: 5px; }
+    .hint { color: #8299b7; font-size: 11px; margin-top: 6px; }
+    .log { background: #080d19; border: 1px solid #29415f; color: #b3c5dd; border-radius: 7px; height: 126px; padding: 10px; overflow: auto; white-space: pre-wrap; font-family: Consolas, monospace; font-size: 11px; line-height: 1.4; }
+    .buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    button { border: 1px solid #315276; color: #eaf2ff; background: #1a304b; border-radius: 6px; padding: 9px 15px; font-size: 12px; cursor: pointer; }
+    button.primary { background: #32b8ff; border-color: #69ccff; color: #06111e; font-weight: 700; }
+    button.danger { background: #512a37; border-color: #9d5264; }
+    button:disabled { opacity: .45; cursor: default; }
+    .footnote { color: #8299b7; font-size: 11px; margin-top: 12px; line-height: 1.4; }
+    .hidden { display: none; }
+
+    body.theme-light { background: #e8eff8; color: #172b45; }
+    .theme-light .eyebrow { color: #1688d8; }
+    .theme-light .subtitle, .theme-light .message, .theme-light .footnote { color: #60758f; }
+    .theme-light .panel { background: #ffffff; border-color: #c8d8ea; }
+    .theme-light .stage, .theme-light .section-title { color: #172b45; }
+    .theme-light .percent { color: #096faF; }
+    .theme-light .track { background: #e3edf8; border-color: #c8d8ea; }
+    .theme-light .fill { background: #1688d8; }
+    .theme-light .option { color: #314965; }
+    .theme-light .path-label, .theme-light .hint { color: #60758f; }
+    .theme-light input[type=text] { background: #f6f9fd; border-color: #c8d8ea; color: #172b45; }
+    .theme-light .log { background: #f6f9fd; border-color: #c8d8ea; color: #263e5a; }
+    .theme-light button { border-color: #c1d2e5; color: #172b45; background: #e3edf8; }
+    .theme-light button:hover { background: #d2e4f5; }
+    .theme-light button.primary { color: #ffffff; background: #0c73b8; border-color: #095f9f; }
+    .theme-light button.danger { color: #8f2638; background: #fce5e9; border-color: #e7aeb8; }
+    .theme-light .footnote { color: #60758f; }
+  </style>
+  <script language="JScript">
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var shell = new ActiveXObject("WScript.Shell");
+    var rootPath = "", statusPath = "", logPath = "", cancelPath = "", outputPath = "", pidPath = "";
+    var running = false, finished = false, poller = null, lastState = "";
+    var buildStartedAt = 0, startupNoticeShown = false, lastProcessCheckAt = 0;
+    var consoleLogPath = "", processWmi = null;
+    var currentSystemTheme = "";
+
+    function detectWindowsAppTheme() {
+      var registryPath = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\\";
+      try {
+        var appMode = shell.RegRead(registryPath + "AppsUseLightTheme");
+        return parseInt(appMode, 10) === 1 ? "light" : "dark";
+      } catch (appThemeError) {
+        try {
+          var systemMode = shell.RegRead(registryPath + "SystemUsesLightTheme");
+          return parseInt(systemMode, 10) === 1 ? "light" : "dark";
+        } catch (systemThemeError) {
+          return "dark";
+        }
+      }
+    }
+    function applyWindowsTheme(force) {
+      var themeName = detectWindowsAppTheme();
+      if (!force && themeName === currentSystemTheme) return;
+      currentSystemTheme = themeName;
+      document.body.className = themeName === "light" ? "theme-light" : "theme-dark";
+      if (logPath) appendLog("Windows app theme detected: " + (themeName === "light" ? "Light" : "Dark"));
+    }
+
+    function quote(value) { return '"' + String(value).replace(/"/g, '""') + '"'; }
+    function initPaths() {
+      var here = decodeURIComponent(window.location.pathname);
+      if (/^\/[A-Za-z]:/.test(here)) here = here.substring(1);
+      here = here.replace(/\//g, "\\");
+      var installerDir = fso.GetParentFolderName(here);
+      rootPath = fso.GetParentFolderName(installerDir);
+      statusPath = fso.BuildPath(rootPath, ".build\\portable_build_status.json");
+      logPath = fso.BuildPath(rootPath, ".build\\portable_build.log");
+      consoleLogPath = fso.BuildPath(rootPath, ".build\\portable_build_console.log");
+      cancelPath = fso.BuildPath(rootPath, ".build\\portable_build.cancel");
+      pidPath = fso.BuildPath(rootPath, ".build\\portable_build.pid");
+      outputPath = fso.BuildPath(rootPath, "release\\portable");
+      document.getElementById("rootLabel").innerText = rootPath;
+    }
+    function ensureBuildFolder() {
+      var buildFolder = fso.BuildPath(rootPath, ".build");
+      if (!fso.FolderExists(buildFolder)) fso.CreateFolder(buildFolder);
+    }
+    function setText(id, value) { document.getElementById(id).innerText = value; }
+    function isProcessRunning(processId) {
+      try {
+        if (!processWmi) {
+          var locator = new ActiveXObject("WbemScripting.SWbemLocator");
+          processWmi = locator.ConnectServer(".", "root\\cimv2");
+        }
+        var numericPid = parseInt(processId, 10);
+        if (!(numericPid > 0)) return null;
+        var rows = processWmi.ExecQuery("SELECT ProcessId FROM Win32_Process WHERE ProcessId=" + numericPid);
+        var iterator = new Enumerator(rows);
+        return !iterator.atEnd();
+      } catch (e) {
+        return null;
+      }
+    }
+    function setRunningUi(value) {
+      document.getElementById("startButton").disabled = value;
+      document.getElementById("cancelButton").disabled = !value;
+      document.getElementById("closeButton").disabled = value;
+      running = value;
+    }
+    function appendLog(message) {
+      var stream = null;
+      try {
+        stream = fso.OpenTextFile(logPath, 8, true, -1);
+        stream.WriteLine("[builder] " + message);
+        stream.Close();
+      } catch (e) {
+        try { if (stream) stream.Close(); } catch (ignore) {}
+      }
+    }
+    function startBuild() {
+      if (running) return;
+      try {
+        ensureBuildFolder();
+        if (!fso.FileExists(fso.BuildPath(rootPath, "installer\\portable_build_launcher.ps1"))) {
+          throw new Error("Portable build launcher was not found. Re-extract the complete Polyfitty Studio source ZIP.");
+        }
+        if (fso.FileExists(statusPath)) fso.DeleteFile(statusPath, true);
+        if (fso.FileExists(cancelPath)) fso.DeleteFile(cancelPath, true);
+        if (fso.FileExists(pidPath)) fso.DeleteFile(pidPath, true);
+        var logFile = fso.CreateTextFile(logPath, true, true);
+        logFile.WriteLine("Polyfitty Studio portable build started.");
+        logFile.Close();
+        var consoleFile = fso.CreateTextFile(consoleLogPath, true, true);
+        consoleFile.WriteLine("PowerShell launcher output will appear here.");
+        consoleFile.Close();
+
+        var ps = shell.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+        var launcherPath = fso.BuildPath(rootPath, "installer\\portable_build_launcher.ps1");
+        var scriptPath = fso.BuildPath(rootPath, "installer\\build_portable.ps1");
+        if (!fso.FileExists(ps)) throw new Error("Windows PowerShell 5.1 was not found: " + ps);
+        if (!fso.FileExists(scriptPath)) throw new Error("Build script was not found: " + scriptPath);
+
+        var command = quote(ps) + " -NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File " + quote(launcherPath)
+          + " -BuildScript " + quote(scriptPath)
+          + " -StatusFile " + quote(statusPath)
+          + " -LogFile " + quote(logPath)
+          + " -ConsoleLogFile " + quote(consoleLogPath)
+          + " -CancelFile " + quote(cancelPath)
+          + " -PidFile " + quote(pidPath);
+
+        setRunningUi(true);
+        finished = false; lastState = ""; startupNoticeShown = false;
+        buildStartedAt = new Date().getTime(); lastProcessCheckAt = 0;
+        document.getElementById("fill").style.width = "0%";
+        document.getElementById("fill").className = "fill busy";
+        setText("percent", "0%");
+        setText("stage", "Starting builder");
+        setText("message", "Launching the monitored PowerShell build process...");
+        appendLog("Launching PowerShell build launcher.");
+
+        var launchResult = shell.Run(command, 0, false);
+        appendLog("PowerShell build launcher started hidden (Run result " + launchResult + ").");
+        if (poller) window.clearInterval(poller);
+        poller = window.setInterval(refreshStatus, 600);
+      } catch (e) {
+        setRunningUi(false);
+        setText("stage", "Could not start");
+        setText("message", e.message || String(e));
+        appendLog("Could not start the build: " + (e.message || String(e)));
+        refreshLog();
+        alert("The portable build could not be started:\n" + (e.message || String(e)));
+      }
+    }
+    function readUnicode(path) {
+      if (!fso.FileExists(path)) return "";
+      var stream = null;
+      try {
+        stream = fso.OpenTextFile(path, 1, false, -1);
+        var content = stream.ReadAll();
+        stream.Close();
+        return content;
+      } catch (e) {
+        try { if (stream) stream.Close(); } catch (ignore) {}
+        return "";
+      }
+    }
+    function refreshLog() {
+      var text = readUnicode(logPath);
+      var consoleText = readUnicode(consoleLogPath);
+      if (consoleText !== "") text += "\r\n--- PowerShell console output ---\r\n" + consoleText;
+      if (text.length > 12000) text = text.substring(text.length - 12000);
+      var box = document.getElementById("logBox");
+      box.innerText = text || "Waiting for build log...";
+      box.scrollTop = box.scrollHeight;
+    }
+    function refreshStatus() {
+      var raw = readUnicode(statusPath);
+      var state = null;
+      if (raw !== "") {
+        try {
+          state = JSON.parse(raw);
+          var pct = Math.max(0, Math.min(100, Number(state.percent) || 0));
+          document.getElementById("fill").style.width = pct + "%";
+          setText("percent", pct + "%");
+          setText("stage", state.stage || "Building");
+          setText("message", state.message || "");
+          if (state.state === "running") document.getElementById("fill").className = "fill busy";
+          if (state.state === "succeeded" || state.state === "failed" || state.state === "cancelled") {
+            if (lastState !== state.state) completeBuild(state.state, state.message || state.error || "");
+          }
+        } catch (e) {
+        }
+      }
+
+      var pidText = readUnicode(pidPath).replace(/^\s+|\s+$/g, "");
+      var now = new Date().getTime();
+      if (running && pidText !== "" && now - lastProcessCheckAt >= 1200) {
+        lastProcessCheckAt = now;
+        var processAlive = isProcessRunning(pidText);
+        var terminalState = state && (state.state === "succeeded" || state.state === "failed" || state.state === "cancelled");
+        if (processAlive === false && !terminalState) {
+          var diagnostic = "Hidden PowerShell process (PID " + pidText + ") exited before reporting a final build state.";
+          var consoleText = readUnicode(consoleLogPath).replace(/^\s+|\s+$/g, "");
+          if (consoleText !== "") {
+            if (consoleText.length > 1800) consoleText = consoleText.substring(consoleText.length - 1800);
+            diagnostic += " Details: " + consoleText;
+          }
+          appendLog(diagnostic);
+          completeBuild("failed", diagnostic);
+          refreshLog();
+          return;
+        }
+      } else if (running && !startupNoticeShown && buildStartedAt > 0 &&
+                 (now - buildStartedAt) > 15000 && raw === "") {
+        startupNoticeShown = true;
+        setText("stage", "Waiting for PowerShell startup");
+        setText("message", "The hidden PowerShell process has not reported its first build status. Check the build log; startup is monitored and can be cancelled.");
+        appendLog("No initial status was written after 15 seconds.");
+      }
+      refreshLog();
+    }
+    function completeBuild(state, message) {
+      lastState = state; finished = true;
+      setRunningUi(false);
+      try { if (fso.FileExists(pidPath)) fso.DeleteFile(pidPath, true); } catch (ignorePid) {}
+      document.getElementById("fill").className = "fill";
+      if (state === "succeeded") {
+        document.getElementById("fill").style.width = "100%";
+        setText("percent", "100%");
+        setText("stage", "Build completed");
+        setText("message", "One self-contained PolyfittyStudio.exe is ready in release\\portable. No sidecar runtime files are required.");
+        document.getElementById("outputButton").disabled = false;
+      } else if (state === "cancelled") {
+        setText("stage", "Build cancelled");
+        setText("message", message || "The build was cancelled at a safe checkpoint.");
+      } else {
+        setText("stage", "Build failed");
+        setText("message", message || "The build failed. Open the log for details.");
+      }
+      if (poller) { window.clearInterval(poller); poller = null; }
+      refreshLog();
+    }
+    function cancelBuild() {
+      if (!running) return;
+      try {
+        var cancel = fso.CreateTextFile(cancelPath, true, true);
+        cancel.WriteLine("cancel"); cancel.Close();
+        document.getElementById("cancelButton").disabled = true;
+        setText("message", "Cancellation requested. The builder will stop at the next safe checkpoint.");
+      } catch (e) { alert("Could not request cancellation: " + e.message); }
+    }
+    function openLog() {
+      if (fso.FileExists(logPath)) shell.Run("notepad.exe " + quote(logPath), 1, false);
+      if (fso.FileExists(consoleLogPath)) shell.Run("notepad.exe " + quote(consoleLogPath), 1, false);
+    }
+    function openOutput() {
+      if (fso.FolderExists(outputPath)) shell.Run("explorer.exe " + quote(outputPath), 1, false);
+    }
+    function closeWindow() {
+      if (running) return;
+      window.close();
+    }
+    window.onload = function () {
+      initPaths();
+      applyWindowsTheme(true);
+      window.setInterval(function () { applyWindowsTheme(false); }, 1500);
+      refreshLog();
+    };
+  </script>
+</head>
+<body>
+  <div class="window">
+    <div class="brand-row">
+      <img class="brand-icon" src="..\app\assets\PolyfittyStudio.png" alt="Polyfitty Studio" />
+      <div class="brand-copy">
+        <div class="eyebrow">POLYFITTY STUDIO</div>
+        <h1>Portable EXE Builder</h1>
+        <div class="subtitle">Build one self-contained single-file portable executable for Polyfitty Studio.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row"><div id="stage" class="stage">Ready to build</div><div id="percent" class="percent">0%</div></div>
+      <div id="message" class="message">This builder creates exactly one distributable EXE. The EXE embeds the application, CPython 3.12, Qt, VTK, core libraries, startup scripts and splash image. On first launch on the recipient PC, it expands its private payload into the current Windows user profile, detects the GPU, and installs only matching user-space compute packages.</div>
+      <div class="track"><div id="fill" class="fill"></div></div>
+      <div class="hint">The builder verifies the release source, creates an isolated Python build image, compresses the complete app/runtime into the native EXE, then reopens that EXE and audits the embedded payload. The distribution output folder contains only PolyfittyStudio.exe.</div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">Single-file embedded portable EXE</div>
+      <p class="option">The application source is the single source of truth. The portable builder creates a private CPython 3.12 runtime and core dependencies, then embeds the entire application image as a compressed resource inside <code>PolyfittyStudio.exe</code>. Users receive one executable, not a folder of loose files.</p>
+      <p class="option">No builder-PC GPU packages are shipped. On first launch, the EXE extracts its payload into a versioned Local AppData cache so native DLLs can load, then detects the recipient GPU, installs matching user-space packages into that private cache and verifies a real application kernel. The EXE remains the only distributed file.</p>
+      <div class="hint" id="rootLabel"></div>
+    </div>
+
+    <div class="section-title">Build log</div>
+    <div id="logBox" class="log">The build log will appear here.</div>
+
+    <div class="buttons">
+      <button id="outputButton" onclick="openOutput()" disabled="disabled">Open EXE output folder</button>
+      <button id="logButton" onclick="openLog()">Open full log</button>
+      <button id="cancelButton" class="danger" onclick="cancelBuild()" disabled="disabled">Cancel build</button>
+      <button id="closeButton" onclick="closeWindow()">Close</button>
+      <button id="startButton" class="primary" onclick="startBuild()">Start portable build</button>
+    </div>
+    <div class="footnote">The PowerShell build process and its console window run hidden. This window reports the current stage, progress, and diagnostic messages.</div>
+  </div>
+</body>
+</html>

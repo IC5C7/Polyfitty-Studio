@@ -1,0 +1,1 @@
+"""Polyfitty Studio application package."""
