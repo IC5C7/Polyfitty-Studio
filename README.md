@@ -127,17 +127,42 @@ GPU acceleration is optional and applies to supported compute kernels rather tha
 
 A compatible vendor driver and compute runtime are required for GPU acceleration. Polyfitty Studio does not silently replace Windows display or compute drivers. GPU packages may be downloaded during installation or first-run setup, depending on the selected device and available runtime.
 
+## System requirements
+
+Polyfitty Studio is designed for 64-bit Windows. Reconstruction, mesh inspection, and texture baking can use substantial CPU memory and temporary storage, especially with dense point clouds, high-polygon meshes, or large texture atlases.
+
+The project does not enforce a single hardware threshold, and performance depends heavily on input size, reconstruction mode, texture resolution, and the selected compute backend. The figures below are **practical planning guidelines**, not a formally benchmarked compatibility guarantee.
+
+| Component | Minimum practical baseline | Recommended for regular / larger projects |
+|---|---|---|
+| Operating system | Windows 10 or Windows 11, 64-bit | Windows 11, 64-bit, fully updated |
+| CPU | Modern 64-bit Intel or AMD processor, 4 cores | Recent 6–8 core Intel or AMD processor |
+| System memory (RAM) | 16 GB | 32 GB or more; 64 GB can help with very large datasets |
+| Graphics for the 3D viewport | Integrated or dedicated GPU with a current Windows graphics driver | Recent dedicated GPU with up-to-date drivers |
+| GPU memory (VRAM) | No universal minimum; GPU compute is optional | 8 GB or more for more demanding GPU workloads |
+| Free storage | Allow at least 5 GB for installation/runtime files, plus project data | 10–20 GB or more for runtimes, caches, temporary data, and exports |
+| Network | Internet access for installation and optional first-run GPU setup | Stable broadband connection for downloads and updates |
+
+### GPU acceleration requirements
+
+A dedicated GPU is **not required** to use the CPU processing path. GPU acceleration is optional and is enabled only when a compatible device, vendor driver, and matching compute runtime are available and pass the application's checks.
+
+Supported compute paths depend on the installed hardware and runtime:
+
+- **NVIDIA:** CUDA 12.x through CuPy. The bundled CUDA 12.6 Update 2 setup checks for a Windows driver compatibility floor of 528.33; driver 560.94 or newer is recommended for the CUDA 12.6 Update 2 driver level.
+- **AMD:** HIP / HIPRTC, including the optional Windows native HIP bridge, where the required AMD driver and runtime are available.
+- **Intel:** oneAPI / SYCL through `dpnp` and `dpctl` with a compatible Intel GPU/runtime environment.
+- **Cross-vendor:** OpenCL through `pyopencl`, provided the device driver exposes a working OpenCL implementation.
+
+The application validates compute devices and can fall back to supported CPU operations when GPU acceleration is unavailable or unsuitable. VRAM needs vary with the operation and dataset; the recommended VRAM figure is guidance, not a hard compatibility limit.
+
+### Runtime and installer notes
+
+The standard installer provisions a private **CPython 3.12.10 x64** runtime and the core Python dependencies. A separate system-wide Python installation is not required. Internet access is needed to download the runtime and dependencies during installation; optional GPU packages may also be downloaded during installation or first-run setup. Keep the project/runtime location writable and allow additional disk space for source assets, processing caches, and exported files.
+
+> **Hardware guidance:** The memory, CPU, VRAM, and storage figures above are estimated starting points, not published minimum specifications verified across every workload. Large point clouds, dense meshes, high-resolution texture baking, and simultaneous applications may require substantially more resources. If a project runs out of memory, reduce input density or texture resolution, close other applications, or use a machine with more RAM/VRAM.
+
 ## Installation
-
-### Requirements
-
-- Windows 10/11 x64 (64-bit Windows environment).
-- Internet access during installation and first-run GPU package setup.
-- A writable location for the extracted project and its runtime/cache files.
-- Adequate memory and storage for the source assets, processing workspace, and exported files.
-- A compatible vendor GPU driver for GPU acceleration. CPU processing remains available when GPU acceleration cannot be used.
-
-The installer provisions a private **CPython 3.12.10 x64** runtime and the core Python dependencies. A separate system-wide Python installation is not required for the standard installation path.
 
 ### Install from the source package
 
