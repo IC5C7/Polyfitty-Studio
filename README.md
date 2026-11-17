@@ -178,7 +178,7 @@ To repair an interrupted or damaged installation, run the installer again. To re
 The project includes a Windows x64 builder that packages the application and its core runtime into one executable.
 
 1. Open the complete project source folder on a Windows x64 machine.
-2. Run **`BUILD_PORTABLE_EXE.bat`** or **`BUILD_PORTABLE_EXE.vbs`**.
+2. Run **`BUILD_PORTABLE_EXE.vbs`** or **`BUILD_PORTABLE_EXE.bat`**.
 3. Allow the builder to download the required runtime and package prerequisites.
 4. Find the generated executable here:
 
